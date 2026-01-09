@@ -17,7 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
         $middleware->api(append: [
-            \App\Http\Middleware\HandleCors::class,
+            \App\Http\Middleware\CustomCors::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
