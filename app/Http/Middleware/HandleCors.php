@@ -16,7 +16,7 @@ class HandleCors
     public function handle(Request $request, Closure $next): Response
     {
         // Get allowed origins from environment
-        $allowedOrigins = explode(',', env('CORS_ALLOWED_ORIGINS', 'https://core.kalaexcel.com,https://www.kalaexcel.com,https://kalaexcel.com'));
+        $allowedOrigins = array_map('trim', explode(',', env('CORS_ALLOWED_ORIGINS', 'https://core.kalaexcel.com,https://www.kalaexcel.com,https://kalaexcel.com')));
         $origin = $request->header('Origin');
         
         // Handle preflight requests
@@ -26,15 +26,20 @@ class HandleCors
             $response = $next($request);
         }
         
-        // Check if origin is allowed
+        // Check if origin is allowed and set specific origin (not wildcard)
         if ($origin && in_array($origin, $allowedOrigins)) {
             $response->headers->set('Access-Control-Allow-Origin', $origin);
+            $response->headers->set('Access-Control-Allow-Credentials', 'true');
+        } else {
+            // If no origin or not allowed, don't set CORS headers
+            // This prevents wildcard * from being used
+            return $response;
         }
         
-        $response->headers->set('Access-Control-Allow-Credentials', 'true');
         $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
         $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-XSRF-TOKEN, Accept, Origin');
         $response->headers->set('Access-Control-Max-Age', '86400');
+        $response->headers->set('Vary', 'Origin');
         
         return $response;
     }
