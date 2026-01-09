@@ -17,7 +17,7 @@ class CustomCors
     {
         $origin = $request->header('Origin');
         
-        // Allowed origins
+        // Allowed origins - hardcoded for simplicity
         $allowedOrigins = [
             'https://core.kalaexcel.com',
             'https://www.kalaexcel.com',
@@ -33,20 +33,23 @@ class CustomCors
         
         // Check if origin is allowed
         if ($origin && in_array($origin, $allowedOrigins)) {
-            // Remove ALL existing CORS headers first
-            $response->headers->remove('Access-Control-Allow-Origin');
-            $response->headers->remove('Access-Control-Allow-Credentials');
-            $response->headers->remove('Access-Control-Allow-Methods');
-            $response->headers->remove('Access-Control-Allow-Headers');
-            $response->headers->remove('Access-Control-Max-Age');
+            // Get all headers as array
+            $headers = $response->headers->all();
             
-            // Set the correct CORS headers with specific origin (NOT wildcard)
-            $response->headers->set('Access-Control-Allow-Origin', $origin);
-            $response->headers->set('Access-Control-Allow-Credentials', 'true');
-            $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-            $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-XSRF-TOKEN, Accept, Origin');
-            $response->headers->set('Access-Control-Max-Age', '86400');
-            $response->headers->set('Vary', 'Origin');
+            // Remove ALL CORS-related headers (case-insensitive)
+            foreach ($headers as $key => $value) {
+                if (stripos($key, 'access-control') === 0) {
+                    $response->headers->remove($key);
+                }
+            }
+            
+            // Now set the correct headers with specific origin (NOT wildcard)
+            $response->headers->set('Access-Control-Allow-Origin', $origin, true);
+            $response->headers->set('Access-Control-Allow-Credentials', 'true', true);
+            $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS', true);
+            $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-XSRF-TOKEN, Accept, Origin', true);
+            $response->headers->set('Access-Control-Max-Age', '86400', true);
+            $response->headers->set('Vary', 'Origin', true);
         }
         
         return $response;

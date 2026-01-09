@@ -22,11 +22,20 @@ class OverrideCorsHeaders
         ];
         
         if ($origin && in_array($origin, $allowedOrigins)) {
-            // Force remove wildcard and set specific origin
-            $response->headers->remove('Access-Control-Allow-Origin');
-            $response->headers->set('Access-Control-Allow-Origin', $origin, false);
-            $response->headers->set('Access-Control-Allow-Credentials', 'true', false);
+            // Get all headers and remove any CORS headers
+            $headers = $response->headers->all();
+            foreach ($headers as $key => $value) {
+                if (stripos($key, 'access-control') === 0) {
+                    $response->headers->remove($key);
+                }
+            }
+            
+            // Force set specific origin (NOT wildcard)
+            $response->headers->set('Access-Control-Allow-Origin', $origin, true);
+            $response->headers->set('Access-Control-Allow-Credentials', 'true', true);
+            $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS', true);
+            $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-XSRF-TOKEN, Accept, Origin', true);
+            $response->headers->set('Access-Control-Max-Age', '86400', true);
         }
     }
 }
-
