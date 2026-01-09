@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\VendorController;
 
 // Public routes (authentication)
+Route::get('/csrf-cookie', [AuthController::class, 'csrfCookie']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 

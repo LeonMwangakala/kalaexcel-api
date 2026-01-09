@@ -10,6 +10,13 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    public function csrfCookie(Request $request)
+    {
+        return response()->json([
+            'message' => 'CSRF cookie set',
+        ]);
+    }
+
     public function login(Request $request)
     {
         $request->validate([
