@@ -16,6 +16,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(remove: [
             \Illuminate\Http\Middleware\HandleCors::class,
         ]);
+        $middleware->web(remove: [
+            \Illuminate\Http\Middleware\HandleCors::class,
+        ]);
+        
+        // Apply CORS middleware globally to catch ALL routes including Sanctum
+        $middleware->append(\App\Http\Middleware\CustomCors::class);
         
         // Our CORS middleware runs LAST to override any wildcard headers
         $middleware->api(prepend: [
