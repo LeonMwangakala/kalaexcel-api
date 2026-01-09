@@ -11,23 +11,13 @@ class CustomCors
     public function handle(Request $request, Closure $next): Response
     {
         $origin = $request->header('Origin');
+        $allowedOrigins = ['https://core.kalaexcel.com', 'https://www.kalaexcel.com', 'https://kalaexcel.com'];
         
-        $allowedOrigins = [
-            'https://core.kalaexcel.com',
-            'https://www.kalaexcel.com',
-            'https://kalaexcel.com',
-        ];
-        
-        // Handle preflight OPTIONS requests
+        // Handle preflight OPTIONS requests FIRST - before any other middleware
         if ($request->getMethod() === 'OPTIONS') {
-            $response = response('', 200);
+            $response = response('', 204);
             
             if ($origin && in_array($origin, $allowedOrigins)) {
-                // Remove any existing CORS headers
-                $response->headers->remove('Access-Control-Allow-Origin');
-                $response->headers->remove('Access-Control-Allow-Credentials');
-                
-                // Set correct headers for preflight
                 $response->headers->set('Access-Control-Allow-Origin', $origin);
                 $response->headers->set('Access-Control-Allow-Credentials', 'true');
                 $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
@@ -38,20 +28,24 @@ class CustomCors
             return $response;
         }
         
-        // For non-OPTIONS requests, get the response first
+        // For other requests, process normally then fix headers
         $response = $next($request);
         
-        // Then override CORS headers
         if ($origin && in_array($origin, $allowedOrigins)) {
-            // Force remove ALL CORS headers
+            // Remove ALL CORS headers completely
             $allHeaders = $response->headers->all();
-            foreach (array_keys($allHeaders) as $headerName) {
-                if (stripos($headerName, 'access-control') === 0) {
-                    $response->headers->remove($headerName);
+            $cleanHeaders = [];
+            
+            foreach ($allHeaders as $key => $value) {
+                if (stripos($key, 'access-control') !== 0) {
+                    $cleanHeaders[$key] = $value;
                 }
             }
             
-            // Set correct headers
+            // Replace headers (removes all CORS)
+            $response->headers->replace($cleanHeaders);
+            
+            // Add correct CORS headers
             $response->headers->set('Access-Control-Allow-Origin', $origin);
             $response->headers->set('Access-Control-Allow-Credentials', 'true');
             $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');

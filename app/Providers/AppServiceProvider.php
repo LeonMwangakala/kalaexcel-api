@@ -3,23 +3,42 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Http\Response;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         //
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
-        // Override CORS headers in response after it's prepared - FINAL OVERRIDE
+        // Override CORS headers using response macro - runs on every response
+        Response::macro('withCors', function ($origin) {
+            $allowedOrigins = ['https://core.kalaexcel.com', 'https://www.kalaexcel.com', 'https://kalaexcel.com'];
+            
+            if (in_array($origin, $allowedOrigins)) {
+                // Remove ALL CORS headers
+                $allHeaders = $this->headers->all();
+                foreach (array_keys($allHeaders) as $headerName) {
+                    if (stripos($headerName, 'access-control') === 0) {
+                        $this->headers->remove($headerName);
+                    }
+                }
+                
+                // Set correct headers
+                $this->headers->set('Access-Control-Allow-Origin', $origin);
+                $this->headers->set('Access-Control-Allow-Credentials', 'true');
+                $this->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+                $this->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-XSRF-TOKEN, Accept, Origin');
+                $this->headers->set('Access-Control-Max-Age', '86400');
+            }
+            
+            return $this;
+        });
+        
+        // Listen to response prepared event and force override
         $this->app['events']->listen(\Illuminate\Http\Events\ResponsePrepared::class, function ($event) {
             $request = $event->request;
             $response = $event->response;
@@ -28,21 +47,21 @@ class AppServiceProvider extends ServiceProvider
             $allowedOrigins = ['https://core.kalaexcel.com', 'https://www.kalaexcel.com', 'https://kalaexcel.com'];
             
             if ($origin && in_array($origin, $allowedOrigins)) {
-                // Get all headers and rebuild without wildcard
-                $allHeaders = $response->headers->all();
+                // Get current headers
+                $currentHeaders = $response->headers->all();
                 $newHeaders = [];
                 
-                foreach ($allHeaders as $key => $value) {
-                    // Skip CORS headers - we'll add them back correctly
+                // Copy all non-CORS headers
+                foreach ($currentHeaders as $key => $value) {
                     if (stripos($key, 'access-control') !== 0) {
                         $newHeaders[$key] = $value;
                     }
                 }
                 
-                // Replace all headers (this removes CORS headers)
+                // Replace all headers (removes CORS)
                 $response->headers->replace($newHeaders);
                 
-                // Now add correct CORS headers
+                // Add correct CORS headers
                 $response->headers->set('Access-Control-Allow-Origin', $origin);
                 $response->headers->set('Access-Control-Allow-Credentials', 'true');
                 $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
