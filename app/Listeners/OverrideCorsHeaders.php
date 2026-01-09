@@ -6,9 +6,6 @@ use Illuminate\Http\Events\ResponsePrepared;
 
 class OverrideCorsHeaders
 {
-    /**
-     * Handle the event.
-     */
     public function handle(ResponsePrepared $event): void
     {
         $request = $event->request;
@@ -22,15 +19,21 @@ class OverrideCorsHeaders
         ];
         
         if ($origin && in_array($origin, $allowedOrigins)) {
-            // Get all headers and remove any CORS headers
-            $headers = $response->headers->all();
-            foreach ($headers as $key => $value) {
-                if (stripos($key, 'access-control') === 0) {
-                    $response->headers->remove($key);
+            // Get all headers
+            $allHeaders = $response->headers->all();
+            
+            // Remove ALL CORS headers (check all possible variations)
+            foreach (array_keys($allHeaders) as $headerName) {
+                if (stripos($headerName, 'access-control') === 0) {
+                    $response->headers->remove($headerName);
                 }
             }
             
-            // Force set specific origin (NOT wildcard)
+            // Also try removing with exact names
+            $response->headers->remove('Access-Control-Allow-Origin');
+            $response->headers->remove('access-control-allow-origin');
+            
+            // Force set the correct origin (this should override anything)
             $response->headers->set('Access-Control-Allow-Origin', $origin, true);
             $response->headers->set('Access-Control-Allow-Credentials', 'true', true);
             $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS', true);
