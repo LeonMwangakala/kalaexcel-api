@@ -17,12 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\HandleCors::class,
         ]);
         
-        // CORS middleware runs after Sanctum to override any wildcard headers
+        // Custom CORS must run first to set proper headers before Sanctum
         $middleware->api(prepend: [
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-        ]);
-        $middleware->api(append: [
             \App\Http\Middleware\CustomCors::class,
+            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
