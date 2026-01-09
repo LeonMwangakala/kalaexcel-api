@@ -8,9 +8,6 @@ use Symfony\Component\HttpFoundation\Response;
 
 class CustomCors
 {
-    /**
-     * Handle an incoming request.
-     */
     public function handle(Request $request, Closure $next): Response
     {
         $origin = $request->header('Origin');
@@ -21,31 +18,46 @@ class CustomCors
             'https://kalaexcel.com',
         ];
         
+        // Handle preflight OPTIONS requests
         if ($request->getMethod() === 'OPTIONS') {
             $response = response('', 200);
-        } else {
-            $response = $next($request);
-        }
-        
-        if ($origin && in_array($origin, $allowedOrigins)) {
-            // Force remove ALL possible CORS header variations
-            $corsHeaders = [
-                'Access-Control-Allow-Origin',
-                'access-control-allow-origin',
-                'ACCESS-CONTROL-ALLOW-ORIGIN',
-            ];
             
-            foreach ($corsHeaders as $header) {
-                $response->headers->remove($header);
+            if ($origin && in_array($origin, $allowedOrigins)) {
+                // Remove any existing CORS headers
+                $response->headers->remove('Access-Control-Allow-Origin');
+                $response->headers->remove('Access-Control-Allow-Credentials');
+                
+                // Set correct headers for preflight
+                $response->headers->set('Access-Control-Allow-Origin', $origin);
+                $response->headers->set('Access-Control-Allow-Credentials', 'true');
+                $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+                $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-XSRF-TOKEN, Accept, Origin');
+                $response->headers->set('Access-Control-Max-Age', '86400');
             }
             
-            // Create new response with correct headers
-            $response->headers->set('Access-Control-Allow-Origin', $origin, true);
-            $response->headers->set('Access-Control-Allow-Credentials', 'true', true);
-            $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS', true);
-            $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-XSRF-TOKEN, Accept, Origin', true);
-            $response->headers->set('Access-Control-Max-Age', '86400', true);
-            $response->headers->set('Vary', 'Origin', true);
+            return $response;
+        }
+        
+        // For non-OPTIONS requests, get the response first
+        $response = $next($request);
+        
+        // Then override CORS headers
+        if ($origin && in_array($origin, $allowedOrigins)) {
+            // Force remove ALL CORS headers
+            $allHeaders = $response->headers->all();
+            foreach (array_keys($allHeaders) as $headerName) {
+                if (stripos($headerName, 'access-control') === 0) {
+                    $response->headers->remove($headerName);
+                }
+            }
+            
+            // Set correct headers
+            $response->headers->set('Access-Control-Allow-Origin', $origin);
+            $response->headers->set('Access-Control-Allow-Credentials', 'true');
+            $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+            $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-XSRF-TOKEN, Accept, Origin');
+            $response->headers->set('Access-Control-Max-Age', '86400');
+            $response->headers->set('Vary', 'Origin');
         }
         
         return $response;

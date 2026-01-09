@@ -20,15 +20,17 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\HandleCors::class,
         ]);
         
-        // Apply CORS middleware globally to catch ALL routes including Sanctum
-        $middleware->append(\App\Http\Middleware\CustomCors::class);
-        
-        // Our CORS middleware runs LAST to override any wildcard headers
-        $middleware->api(prepend: [
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-        ]);
+        // Apply CORS middleware to both API and Web routes (Sanctum uses web routes)
         $middleware->api(append: [
             \App\Http\Middleware\CustomCors::class,
+        ]);
+        $middleware->web(append: [
+            \App\Http\Middleware\CustomCors::class,
+        ]);
+        
+        // Sanctum middleware
+        $middleware->api(prepend: [
+            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
