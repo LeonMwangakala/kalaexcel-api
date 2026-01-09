@@ -26,43 +26,43 @@ class CustomCors
             $response = $next($request);
         }
         
-        // Remove any existing CORS headers that might have been set by other middleware
-        $response->headers->remove('Access-Control-Allow-Origin');
-        $response->headers->remove('Access-Control-Allow-Credentials');
-        $response->headers->remove('Access-Control-Allow-Methods');
-        $response->headers->remove('Access-Control-Allow-Headers');
-        
-        // Check if origin is allowed and set specific origin (not wildcard)
-        // Also check without protocol and with/without trailing slash
-        $originMatched = false;
+        // Check if origin is allowed
         if ($origin) {
             // Normalize origin (remove trailing slash)
             $normalizedOrigin = rtrim($origin, '/');
             
-            // Check exact match
-            if (in_array($normalizedOrigin, $allowedOrigins)) {
-                $originMatched = true;
-            } else {
-                // Also check if any allowed origin matches (case-insensitive)
-                foreach ($allowedOrigins as $allowedOrigin) {
-                    if (strtolower($normalizedOrigin) === strtolower($allowedOrigin)) {
-                        $originMatched = true;
-                        $normalizedOrigin = $allowedOrigin; // Use the exact case from config
-                        break;
-                    }
+            // Check if origin is in allowed list (case-insensitive)
+            $originMatched = false;
+            $matchedOrigin = null;
+            
+            foreach ($allowedOrigins as $allowedOrigin) {
+                if (strtolower($normalizedOrigin) === strtolower($allowedOrigin)) {
+                    $originMatched = true;
+                    $matchedOrigin = $allowedOrigin; // Use exact case from config
+                    break;
                 }
             }
             
             if ($originMatched) {
-                $response->headers->set('Access-Control-Allow-Origin', $normalizedOrigin);
-                $response->headers->set('Access-Control-Allow-Credentials', 'true');
-                $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-                $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-XSRF-TOKEN, Accept, Origin');
-                $response->headers->set('Access-Control-Max-Age', '86400');
-                $response->headers->set('Vary', 'Origin');
+                // Force remove existing CORS headers (including wildcard)
+                $response->headers->remove('Access-Control-Allow-Origin');
+                $response->headers->remove('Access-Control-Allow-Credentials');
+                $response->headers->remove('Access-Control-Allow-Methods');
+                $response->headers->remove('Access-Control-Allow-Headers');
+                
+                // Set correct CORS headers with specific origin
+                $response->headers->set('Access-Control-Allow-Origin', $matchedOrigin, false);
+                $response->headers->set('Access-Control-Allow-Credentials', 'true', false);
+                $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS', false);
+                $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-XSRF-TOKEN, Accept, Origin', false);
+                $response->headers->set('Access-Control-Max-Age', '86400', false);
+                $response->headers->set('Vary', 'Origin', false);
+            } else {
+                // Remove CORS headers if origin is not allowed
+                $response->headers->remove('Access-Control-Allow-Origin');
+                $response->headers->remove('Access-Control-Allow-Credentials');
             }
         }
-        // If origin is not allowed, don't set any CORS headers
         
         return $response;
     }
