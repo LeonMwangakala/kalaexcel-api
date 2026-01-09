@@ -13,11 +13,12 @@ class CustomCors
         $origin = $request->header('Origin');
         $allowedOrigins = ['https://core.kalaexcel.com', 'https://www.kalaexcel.com', 'https://kalaexcel.com'];
         
-        // Handle preflight OPTIONS requests FIRST - before any other middleware
+        // Handle preflight OPTIONS requests - return immediately with correct headers
         if ($request->getMethod() === 'OPTIONS') {
             $response = response('', 204);
             
             if ($origin && in_array($origin, $allowedOrigins)) {
+                // Don't call $next() for OPTIONS - just return our response
                 $response->headers->set('Access-Control-Allow-Origin', $origin);
                 $response->headers->set('Access-Control-Allow-Credentials', 'true');
                 $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
@@ -28,11 +29,11 @@ class CustomCors
             return $response;
         }
         
-        // For other requests, process normally then fix headers
+        // For non-OPTIONS requests
         $response = $next($request);
         
         if ($origin && in_array($origin, $allowedOrigins)) {
-            // Remove ALL CORS headers completely
+            // Completely rebuild headers without CORS
             $allHeaders = $response->headers->all();
             $cleanHeaders = [];
             
@@ -42,7 +43,7 @@ class CustomCors
                 }
             }
             
-            // Replace headers (removes all CORS)
+            // Replace all headers (removes CORS)
             $response->headers->replace($cleanHeaders);
             
             // Add correct CORS headers
