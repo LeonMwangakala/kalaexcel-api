@@ -13,12 +13,11 @@ class CustomCors
         $origin = $request->header('Origin');
         $allowedOrigins = ['https://core.kalaexcel.com', 'https://www.kalaexcel.com', 'https://kalaexcel.com'];
         
-        // Handle preflight OPTIONS requests - return immediately with correct headers
+        // Handle OPTIONS preflight - return immediately without calling $next()
         if ($request->getMethod() === 'OPTIONS') {
             $response = response('', 204);
             
             if ($origin && in_array($origin, $allowedOrigins)) {
-                // Don't call $next() for OPTIONS - just return our response
                 $response->headers->set('Access-Control-Allow-Origin', $origin);
                 $response->headers->set('Access-Control-Allow-Credentials', 'true');
                 $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
@@ -29,7 +28,7 @@ class CustomCors
             return $response;
         }
         
-        // For non-OPTIONS requests
+        // For non-OPTIONS requests, process then fix headers
         $response = $next($request);
         
         if ($origin && in_array($origin, $allowedOrigins)) {
