@@ -12,6 +12,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Remove Laravel's default CORS middleware to prevent wildcard
+        $middleware->api(remove: [
+            \Illuminate\Http\Middleware\HandleCors::class,
+        ]);
+        
         // CORS middleware runs after Sanctum to override any wildcard headers
         $middleware->api(prepend: [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
