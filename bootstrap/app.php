@@ -20,17 +20,21 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\HandleCors::class,
         ]);
         
-        // Apply CORS middleware to both API and Web routes (Sanctum uses web routes)
+        // CORS middleware MUST run FIRST to handle OPTIONS before anything else
+        $middleware->api(prepend: [
+            \App\Http\Middleware\CustomCors::class,
+            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+        ]);
+        $middleware->web(prepend: [
+            \App\Http\Middleware\CustomCors::class,
+        ]);
+        
+        // Also append to catch any that slip through
         $middleware->api(append: [
             \App\Http\Middleware\CustomCors::class,
         ]);
         $middleware->web(append: [
             \App\Http\Middleware\CustomCors::class,
-        ]);
-        
-        // Sanctum middleware
-        $middleware->api(prepend: [
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
