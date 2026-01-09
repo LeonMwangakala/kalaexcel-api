@@ -33,23 +33,21 @@ class CustomCors
         
         // Check if origin is allowed
         if ($origin && in_array($origin, $allowedOrigins)) {
-            // Get all headers as array
-            $headers = $response->headers->all();
-            
-            // Remove ALL CORS-related headers (case-insensitive)
-            foreach ($headers as $key => $value) {
-                if (stripos($key, 'access-control') === 0) {
-                    $response->headers->remove($key);
+            // Get all headers as array and remove ALL CORS headers (case-insensitive)
+            $allHeaders = $response->headers->all();
+            foreach (array_keys($allHeaders) as $headerName) {
+                if (stripos($headerName, 'access-control') === 0) {
+                    $response->headers->remove($headerName);
                 }
             }
             
             // Now set the correct headers with specific origin (NOT wildcard)
-            $response->headers->set('Access-Control-Allow-Origin', $origin, true);
-            $response->headers->set('Access-Control-Allow-Credentials', 'true', true);
-            $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS', true);
-            $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-XSRF-TOKEN, Accept, Origin', true);
-            $response->headers->set('Access-Control-Max-Age', '86400', true);
-            $response->headers->set('Vary', 'Origin', true);
+            $response->headers->set('Access-Control-Allow-Origin', $origin, false);
+            $response->headers->set('Access-Control-Allow-Credentials', 'true', false);
+            $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS', false);
+            $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-XSRF-TOKEN, Accept, Origin', false);
+            $response->headers->set('Access-Control-Max-Age', '86400', false);
+            $response->headers->set('Vary', 'Origin', false);
         }
         
         return $response;
