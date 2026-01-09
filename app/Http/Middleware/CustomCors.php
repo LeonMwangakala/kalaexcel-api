@@ -33,13 +33,34 @@ class CustomCors
         $response->headers->remove('Access-Control-Allow-Headers');
         
         // Check if origin is allowed and set specific origin (not wildcard)
-        if ($origin && in_array($origin, $allowedOrigins)) {
-            $response->headers->set('Access-Control-Allow-Origin', $origin);
-            $response->headers->set('Access-Control-Allow-Credentials', 'true');
-            $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-            $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-XSRF-TOKEN, Accept, Origin');
-            $response->headers->set('Access-Control-Max-Age', '86400');
-            $response->headers->set('Vary', 'Origin');
+        // Also check without protocol and with/without trailing slash
+        $originMatched = false;
+        if ($origin) {
+            // Normalize origin (remove trailing slash)
+            $normalizedOrigin = rtrim($origin, '/');
+            
+            // Check exact match
+            if (in_array($normalizedOrigin, $allowedOrigins)) {
+                $originMatched = true;
+            } else {
+                // Also check if any allowed origin matches (case-insensitive)
+                foreach ($allowedOrigins as $allowedOrigin) {
+                    if (strtolower($normalizedOrigin) === strtolower($allowedOrigin)) {
+                        $originMatched = true;
+                        $normalizedOrigin = $allowedOrigin; // Use the exact case from config
+                        break;
+                    }
+                }
+            }
+            
+            if ($originMatched) {
+                $response->headers->set('Access-Control-Allow-Origin', $normalizedOrigin);
+                $response->headers->set('Access-Control-Allow-Credentials', 'true');
+                $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+                $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-XSRF-TOKEN, Accept, Origin');
+                $response->headers->set('Access-Control-Max-Age', '86400');
+                $response->headers->set('Vary', 'Origin');
+            }
         }
         // If origin is not allowed, don't set any CORS headers
         
