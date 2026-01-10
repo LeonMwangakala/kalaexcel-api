@@ -54,15 +54,10 @@ class TenantController extends Controller
         $propertyIds = $validated['property_ids'];
         unset($validated['property_ids']);
 
-        // Check if tenant already exists (by phone - primary identifier)
-        // Also check by id_number as secondary check
+        // Check if tenant already exists (by phone - primary identifier only)
+        // Only check by phone number - if phone exists, link to property; if unique, create new tenant
         $existingTenant = Tenant::where('phone', $validated['phone'])->first();
         $isExistingTenant = false;
-        
-        if (!$existingTenant) {
-            // If not found by phone, check by id_number
-            $existingTenant = Tenant::where('id_number', $validated['id_number'])->first();
-        }
 
         if ($existingTenant) {
             // Tenant already exists - update info and assign to new properties
