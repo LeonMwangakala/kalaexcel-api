@@ -65,18 +65,37 @@ class TenantController extends Controller
         }
 
         if ($existingTenant) {
-            // Tenant already exists - assign to new properties
+            // Tenant already exists - update info and assign to new properties
             $isExistingTenant = true;
             $tenant = $existingTenant;
+            
+            // Update tenant information if provided (name, business_type, status)
+            $updateData = [];
+            if (isset($validated['name']) && $tenant->name !== $validated['name']) {
+                $updateData['name'] = $validated['name'];
+            }
+            if (isset($validated['business_type']) && $tenant->business_type !== $validated['business_type']) {
+                $updateData['business_type'] = $validated['business_type'];
+            }
+            if (isset($validated['status']) && $tenant->status !== $validated['status']) {
+                $updateData['status'] = $validated['status'];
+            }
+            
+            // Update tenant if there are changes
+            if (!empty($updateData)) {
+                $tenant->update($updateData);
+            }
             
             // Get properties the tenant doesn't already have
             $existingPropertyIds = $tenant->properties->pluck('id')->toArray();
             $newPropertyIds = array_values(array_diff($propertyIds, $existingPropertyIds));
             
             if (empty($newPropertyIds)) {
-                throw ValidationException::withMessages([
-                    'property_ids' => 'This tenant is already assigned to all selected properties.'
-                ]);
+                // Tenant already assigned to all selected properties - just return success
+                $tenant->load('properties');
+                $response = $tenant->toArray();
+                $response['_message'] = 'Tenant already exists and is already assigned to all selected properties.';
+                return response()->json($response, 200);
             }
 
             // Check if any of the new properties already have an active contract with another tenant
