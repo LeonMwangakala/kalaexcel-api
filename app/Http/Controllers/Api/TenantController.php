@@ -54,17 +54,22 @@ class TenantController extends Controller
         $propertyIds = $validated['property_ids'];
         unset($validated['property_ids']);
 
-        // Check if tenant already exists (by phone or id_number)
-        $existingTenant = Tenant::where('phone', $validated['phone'])
-            ->orWhere('id_number', $validated['id_number'])
-            ->first();
+        // Check if tenant already exists (by phone - primary identifier)
+        // Also check by id_number as secondary check
+        $existingTenant = Tenant::where('phone', $validated['phone'])->first();
+        
+        if (!$existingTenant) {
+            // If not found by phone, check by id_number
+            $existingTenant = Tenant::where('id_number', $validated['id_number'])->first();
+        }
 
         if ($existingTenant) {
             // Tenant already exists - assign to new properties
             $tenant = $existingTenant;
             
             // Get properties the tenant doesn't already have
-            $newPropertyIds = array_diff($propertyIds, $tenant->properties->pluck('id')->toArray());
+            $existingPropertyIds = $tenant->properties->pluck('id')->toArray();
+            $newPropertyIds = array_values(array_diff($propertyIds, $existingPropertyIds));
             
             if (empty($newPropertyIds)) {
                 throw ValidationException::withMessages([
@@ -72,7 +77,7 @@ class TenantController extends Controller
                 ]);
             }
 
-            // Check if any of the new properties already have an active contract
+            // Check if any of the new properties already have an active contract with another tenant
             $propertiesWithActiveContracts = Contract::whereIn('property_id', $newPropertyIds)
                 ->where('status', 'active')
                 ->where('end_date', '>=', now()->toDateString())
@@ -91,7 +96,7 @@ class TenantController extends Controller
                 ]);
             }
 
-            // Attach only the new properties
+            // Attach only the new properties (avoid duplicates)
             $tenant->properties()->attach($newPropertyIds);
         } else {
             // Create new tenant
