@@ -40,8 +40,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Real Estate Module
     Route::apiResource('properties', PropertyController::class);
     Route::get('properties/available/list', [PropertyController::class, 'available']);
+    Route::get('properties/stats', [PropertyController::class, 'stats']);
     Route::apiResource('tenants', TenantController::class);
+    Route::get('tenants/stats', [TenantController::class, 'stats']);
     Route::apiResource('contracts', ContractController::class);
+    Route::get('contracts/stats', [ContractController::class, 'stats']);
     Route::apiResource('rent-payments', RentPaymentController::class);
     
     // Construction Module

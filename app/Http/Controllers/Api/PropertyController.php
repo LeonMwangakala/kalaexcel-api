@@ -96,4 +96,20 @@ class PropertyController extends Controller
         
         return response()->json($properties);
     }
+
+    public function stats(Request $request)
+    {
+        $total = Property::count();
+        $occupied = Property::whereHas('contracts', function ($query) {
+            $query->where('status', 'active')
+                  ->where('end_date', '>=', now()->toDateString());
+        })->count();
+        $available = $total - $occupied;
+        
+        return response()->json([
+            'total' => $total,
+            'occupied' => $occupied,
+            'available' => $available,
+        ]);
+    }
 }

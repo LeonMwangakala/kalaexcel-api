@@ -191,4 +191,19 @@ class TenantController extends Controller
         $tenant->delete();
         return response()->json(['message' => 'Tenant deleted successfully']);
     }
+
+    public function stats(Request $request)
+    {
+        $total = Tenant::count();
+        $active = Tenant::where('status', 'active')->count();
+        $pendingPayment = Tenant::where('status', 'pending_payment')->count();
+        $ended = Tenant::where('status', 'ended')->count();
+        
+        return response()->json([
+            'total' => $total,
+            'active' => $active,
+            'pendingPayment' => $pendingPayment,
+            'ended' => $ended,
+        ]);
+    }
 }

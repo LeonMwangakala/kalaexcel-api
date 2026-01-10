@@ -217,4 +217,27 @@ class ContractController extends Controller
         
         return response()->json(['message' => 'Contract deleted successfully']);
     }
+
+    public function stats(Request $request)
+    {
+        $total = Contract::count();
+        $active = Contract::where('status', 'active')
+            ->where('end_date', '>=', now()->toDateString())
+            ->count();
+        $expired = Contract::where('status', 'expired')->count();
+        $terminated = Contract::where('status', 'terminated')->count();
+        
+        // Calculate total monthly rent value from active contracts
+        $totalMonthlyRent = Contract::where('status', 'active')
+            ->where('end_date', '>=', now()->toDateString())
+            ->sum('rent_amount');
+        
+        return response()->json([
+            'total' => $total,
+            'active' => $active,
+            'expired' => $expired,
+            'terminated' => $terminated,
+            'totalMonthlyRent' => (float) $totalMonthlyRent,
+        ]);
+    }
 }
