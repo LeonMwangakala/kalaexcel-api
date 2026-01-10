@@ -37,14 +37,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [AuthController::class, 'user']);
     Route::put('/user/password', [AuthController::class, 'updatePassword']);
     
-    // Real Estate Module
-    Route::apiResource('properties', PropertyController::class);
-    Route::get('properties/available/list', [PropertyController::class, 'available']);
+    // Real Estate Module - Define specific routes BEFORE apiResource to avoid route conflicts
     Route::get('properties/stats', [PropertyController::class, 'stats']);
-    Route::apiResource('tenants', TenantController::class);
+    Route::get('properties/available/list', [PropertyController::class, 'available']);
+    Route::apiResource('properties', PropertyController::class);
     Route::get('tenants/stats', [TenantController::class, 'stats']);
-    Route::apiResource('contracts', ContractController::class);
+    Route::apiResource('tenants', TenantController::class);
     Route::get('contracts/stats', [ContractController::class, 'stats']);
+    Route::apiResource('contracts', ContractController::class);
     Route::apiResource('rent-payments', RentPaymentController::class);
     
     // Construction Module
