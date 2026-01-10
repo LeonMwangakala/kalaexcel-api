@@ -43,7 +43,7 @@ class TenantController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:255|unique:tenants,phone',
+            'phone' => 'required|string|max:255',
             'id_number' => 'required|string|max:255',
             'business_type' => 'required|string|max:255',
             'property_ids' => 'required|array',
@@ -54,30 +54,75 @@ class TenantController extends Controller
         $propertyIds = $validated['property_ids'];
         unset($validated['property_ids']);
 
-        // Check if any property already has an active contract
-        // Use direct Contract query to ensure fresh data
-        $propertiesWithActiveContracts = Contract::whereIn('property_id', $propertyIds)
-            ->where('status', 'active')
-            ->where('end_date', '>=', now()->toDateString())
-            ->pluck('property_id')
-            ->unique()
-            ->toArray();
+        // Check if tenant already exists (by phone or id_number)
+        $existingTenant = Tenant::where('phone', $validated['phone'])
+            ->orWhere('id_number', $validated['id_number'])
+            ->first();
 
-        if (!empty($propertiesWithActiveContracts)) {
-            $propertyNames = Property::whereIn('id', $propertiesWithActiveContracts)
-                ->pluck('name')
-                ->toArray();
+        if ($existingTenant) {
+            // Tenant already exists - assign to new properties
+            $tenant = $existingTenant;
             
-            throw ValidationException::withMessages([
-                'property_ids' => 'The following properties are already leased: ' . implode(', ', $propertyNames)
-            ]);
+            // Get properties the tenant doesn't already have
+            $newPropertyIds = array_diff($propertyIds, $tenant->properties->pluck('id')->toArray());
+            
+            if (empty($newPropertyIds)) {
+                throw ValidationException::withMessages([
+                    'property_ids' => 'This tenant is already assigned to all selected properties.'
+                ]);
+            }
+
+            // Check if any of the new properties already have an active contract
+            $propertiesWithActiveContracts = Contract::whereIn('property_id', $newPropertyIds)
+                ->where('status', 'active')
+                ->where('end_date', '>=', now()->toDateString())
+                ->where('tenant_id', '!=', $tenant->id)
+                ->pluck('property_id')
+                ->unique()
+                ->toArray();
+
+            if (!empty($propertiesWithActiveContracts)) {
+                $propertyNames = Property::whereIn('id', $propertiesWithActiveContracts)
+                    ->pluck('name')
+                    ->toArray();
+                
+                throw ValidationException::withMessages([
+                    'property_ids' => 'The following properties are already leased to other tenants: ' . implode(', ', $propertyNames)
+                ]);
+            }
+
+            // Attach only the new properties
+            $tenant->properties()->attach($newPropertyIds);
+        } else {
+            // Create new tenant
+            // Check if any property already has an active contract
+            $propertiesWithActiveContracts = Contract::whereIn('property_id', $propertyIds)
+                ->where('status', 'active')
+                ->where('end_date', '>=', now()->toDateString())
+                ->pluck('property_id')
+                ->unique()
+                ->toArray();
+
+            if (!empty($propertiesWithActiveContracts)) {
+                $propertyNames = Property::whereIn('id', $propertiesWithActiveContracts)
+                    ->pluck('name')
+                    ->toArray();
+                
+                throw ValidationException::withMessages([
+                    'property_ids' => 'The following properties are already leased: ' . implode(', ', $propertyNames)
+                ]);
+            }
+
+            $tenant = Tenant::create($validated);
+            $tenant->properties()->attach($propertyIds);
         }
 
-        $tenant = Tenant::create($validated);
-        $tenant->properties()->attach($propertyIds);
         $tenant->load('properties');
 
-        return response()->json($tenant, 201);
+        return response()->json([
+            'tenant' => $tenant,
+            'message' => $existingTenant ? 'Existing tenant assigned to new properties successfully.' : 'Tenant created successfully.'
+        ], 201);
     }
 
     public function show(Tenant $tenant)
