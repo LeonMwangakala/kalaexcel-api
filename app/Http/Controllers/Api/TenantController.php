@@ -57,6 +57,7 @@ class TenantController extends Controller
         // Check if tenant already exists (by phone - primary identifier)
         // Also check by id_number as secondary check
         $existingTenant = Tenant::where('phone', $validated['phone'])->first();
+        $isExistingTenant = false;
         
         if (!$existingTenant) {
             // If not found by phone, check by id_number
@@ -65,6 +66,7 @@ class TenantController extends Controller
 
         if ($existingTenant) {
             // Tenant already exists - assign to new properties
+            $isExistingTenant = true;
             $tenant = $existingTenant;
             
             // Get properties the tenant doesn't already have
@@ -124,10 +126,13 @@ class TenantController extends Controller
 
         $tenant->load('properties');
 
-        return response()->json([
-            'tenant' => $tenant,
-            'message' => $existingTenant ? 'Existing tenant assigned to new properties successfully.' : 'Tenant created successfully.'
-        ], 201);
+        // Return tenant in same format as before, but include message in response
+        $response = $tenant->toArray();
+        if ($isExistingTenant) {
+            $response['_message'] = 'Existing tenant assigned to new properties successfully.';
+        }
+
+        return response()->json($response, 201);
     }
 
     public function show(Tenant $tenant)
