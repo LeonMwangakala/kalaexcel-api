@@ -21,11 +21,13 @@ class ContractController extends Controller
         // Add search functionality if needed
         if ($request->has('search')) {
             $search = $request->get('search');
-            $query->whereHas('tenant', function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%");
-            })->orWhereHas('property', function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%");
-            })->orWhere('contract_number', 'like', "%{$search}%");
+            $query->where(function($q) use ($search) {
+                $q->whereHas('tenant', function ($subQ) use ($search) {
+                    $subQ->where('name', 'like', "%{$search}%");
+                })->orWhereHas('property', function ($subQ) use ($search) {
+                    $subQ->where('name', 'like', "%{$search}%");
+                })->orWhere('contract_number', 'like', "%{$search}%");
+            });
         }
         
         $contracts = $query->paginate($perPage, ['*'], 'page', $page);
